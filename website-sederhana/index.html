@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Data Realisasi SP2D</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  body {
+    font-family: 'Poppins', sans-serif;
+    padding: 20px;
+    margin: 0;
+    background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)),
+                url('rm222-mind-16.jpg') no-repeat center center fixed;
+    background-size: cover;
+    min-height: 100vh;
+    color: #333;
+  }
+
+  h1 {
+    text-align: center;
+    margin-bottom: 20px;
+    color: #013d79;
+    text-shadow: 1px 1px 4px rgba(0,0,0,0.5);
+  }
+
+  #searchInput {
+    width:98.3%;
+    padding:10px;
+    margin-bottom:15px;
+    border-radius:10px;
+    border:1px solid #ccc;
+    font-size:14px;
+  }
+
+  .table-container {
+    overflow-x: auto;
+    border-radius: 15px;
+    background: rgba(255,255,255,0.35);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    padding: 15px;
+    opacity: 0;
+    transform: translateY(20px);
+    animation: fadeInUp 1s forwards;
+  }
+
+  @keyframes fadeInUp {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  table {
+    border-collapse: separate;
+    border-spacing: 0;
+    width: 100%;
+    min-width: 800px;
+    font-family: 'Poppins', sans-serif;
+    font-size: 14px;
+  }
+
+  th, td {
+    padding: 12px 10px;
+    text-align: left;
+    color: #222;
+    text-shadow: 0 0 1px rgba(0,0,0,0.2);
+    vertical-align: middle;
+  }
+
+  th {
+    background: linear-gradient(90deg, #3498db, #2980b9);
+    color: #fff;
+    font-weight: 600;
+    font-size: 14px;
+    text-align: center;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+
+  tr:nth-child(even) { background: rgba(255,255,255,0.1); }
+  tr:hover { background: rgba(52, 152, 219, 0.1); transition: 0.3s; }
+
+  /* Ukuran kolom spesifik */
+  th:nth-child(1), td:nth-child(1) { width: 8%; text-align:center; }
+  th:nth-child(2), td:nth-child(2) { width: 12%; }
+  th:nth-child(3), td:nth-child(3) { width: 15%; }
+  th:nth-child(4), td:nth-child(4) { width: 15%; }
+  th:nth-child(5), td:nth-child(5) { width: 15%; }
+  th:nth-child(6), td:nth-child(6) { width: 15%; }
+  th:nth-child(7), td:nth-child(7) { width: 10%; text-align:right; }
+  th:nth-child(8), td:nth-child(8) { width: 10%; text-align:right; }
+  th:nth-child(9), td:nth-child(9) { width: 10%; text-align:right; }
+  th:nth-child(10), td:nth-child(10) { width: 12%; text-align:center; }
+
+  .btn-upload, .btn-pdf {
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+  }
+
+  .btn-upload {
+    background: #27ae60;
+    color: #fff;
+  }
+  .btn-upload:hover { background: #219150; transform: translateY(-2px); }
+
+  .btn-pdf {
+    background: #3498db;
+    color: #fff;
+  }
+  .btn-pdf:hover { background: #2980b9; transform: scale(1.05); }
+</style>
+</head>
+<body>
+
+<h1>DATA PENCAIRAN SPJ</h1>
+
+<input type="text" id="searchInput" placeholder="Cari data...">
+
+<div class="table-container">
+  <table id="tabelData"></table>
+</div>
+
+<script>
+const apiUrl = "https://script.google.com/macros/s/AKfycbxVfzTEgaWljYKe4V2IUhBSO4I0DjUa1CzcEkcxbaoR5eopO2Kd1oQY82MzKFgBhsQ/exec";
+
+function formatIndoDate(date) {
+  const bulan = ["Januari","Februari","Maret","April","Mei","Juni",
+                 "Juli","Agustus","September","Oktober","November","Desember"];
+  return `${date.getDate()} ${bulan[date.getMonth()]} ${date.getFullYear()}`;
+}
+
+function formatDate(value) {
+  if (!value) return "";
+  if (!isNaN(value)) {
+    const date = new Date(Math.round((value - 25569) * 86400 * 1000));
+    return formatIndoDate(date);
+  }
+  if (typeof value === "string" && value.includes("T")) {
+    return formatIndoDate(new Date(value));
+  }
+  return value;
+}
+
+function formatRupiah(value) {
+  if (!value || isNaN(value)) return value;
+  return Number(value).toLocaleString("id-ID");
+}
+
+fetch(apiUrl)
+  .then(res => res.json())
+  .then(rows => {
+    let html = "<tr>";
+    rows[0].forEach(h => html += `<th>${h}</th>`);
+    html += "<th>Aksi</th></tr>";
+
+    rows.slice(1).forEach((row, rowIndex) => {
+      html += "<tr>";
+      row.forEach((cell, i) => {
+        let header = rows[0][i].toLowerCase();
+        if (header.includes("tanggal")) cell = formatDate(cell);
+        else if (header.includes("jumlah")) cell = formatRupiah(cell);
+
+        if (i === row.length - 1 && typeof cell === "string" && cell.startsWith("http")) {
+          html += `<td style="text-align:center">
+                     <a href="${cell}" target="_blank" class="btn-pdf">Lihat PDF</a>
+                   </td>`;
+        } else {
+          html += `<td>${cell || ""}</td>`;
+        }
+      });
+
+      const nomor = row[0];
+      const inputId = `fileInput_${rowIndex}`;
+      html += `<td style="text-align:center">
+                <input type="file" id="${inputId}" accept="application/pdf" style="display:none" onchange="uploadPDF(this, '${nomor}')">
+                <button class="btn-upload" onclick="document.getElementById('${inputId}').click()">Upload PDF</button>
+               </td>`;
+      html += "</tr>";
+    });
+
+    document.getElementById("tabelData").innerHTML = html;
+
+    // Tambahkan event search/filter
+    document.getElementById("searchInput").addEventListener("input", function() {
+      const filter = this.value.toLowerCase();
+      const table = document.getElementById("tabelData");
+      const trs = table.getElementsByTagName("tr");
+
+      for (let i = 1; i < trs.length; i++) { // mulai dari 1 untuk skip header
+        const tds = trs[i].getElementsByTagName("td");
+        let show = false;
+        for (let j = 0; j < tds.length - 1; j++) { // skip kolom aksi
+          if (tds[j].textContent.toLowerCase().includes(filter)) {
+            show = true;
+            break;
+          }
+        }
+        trs[i].style.display = show ? "" : "none";
+      }
+    });
+  });
+
+async function uploadPDF(input, nomor) {
+  const file = input.files[0];
+  if (!file) return;
+  if(file.type !== "application/pdf"){ alert("File harus PDF!"); return; }
+  
+  const reader = new FileReader();
+  reader.readAsDataURL(file);
+  reader.onload = async function() {
+    const base64File = reader.result.split(",")[1];
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      body: new URLSearchParams({ file: base64File, nomor: nomor })
+    });
+    const data = await response.json();
+    if (data.status === "sukses") {
+      alert("✅ Upload berhasil! Link: " + data.fileUrl);
+      location.reload();
+    } else {
+      alert("❌ Gagal upload: " + data.error);
+    }
+  };
+}
+</script>
+
+</body>
+</html>
